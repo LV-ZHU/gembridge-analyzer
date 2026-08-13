@@ -11,20 +11,28 @@ export class HttpJsonClient {
     this.cache=new JsonCache({dir:cacheDir,ttlMs:cacheTtlMs,enabled:cache});
   }
   async get(url,{cache=true,headers={}}={}){
-    if(cache&&!this.refresh){const hit=await this.cache.read(url); if(hit)return {data:hit.data,meta:{url,fromCache:true,fetchedAt:hit.fetchedAt}}}
+    if(cache&&!this.refresh){const hit=await this.cache.read(url); if(hit)return {data:unwrapJson(hit.data),meta:{url,fromCache:true,fetchedAt:hit.fetchedAt}}}
     let last;
     for(let a=0;a<=this.retries;a++){
       try{
         const res=await requestBuffer(url,{proxy:this.proxy,timeoutMs:this.timeoutMs,headers:{Accept:'application/json','Accept-Encoding':'gzip, deflate',Origin:'http://www.gembridge.cn',Referer:'http://www.gembridge.cn/',...headers}});
         if(res.statusCode<200||res.statusCode>=300) throw new Error(`HTTP ${res.statusCode} ${res.statusMessage||''} - ${url}`);
         const ct=String(res.headers['content-type']||''); if(!ct.includes('json')) throw new Error(`接口未返回 JSON (${ct||'unknown'}): ${url}`);
-        const data=JSON.parse(res.body.toString('utf8')); if(cache)await this.cache.write(url,data);
+        const data=unwrapJson(JSON.parse(res.body.toString('utf8'))); if(cache)await this.cache.write(url,data);
         return {data,meta:{url,fromCache:false,fetchedAt:new Date().toISOString()}};
       }catch(e){last=e;if(a<this.retries)await new Promise(r=>setTimeout(r,350*(2**a)))}
     }
-    if(cache){const stale=await this.cache.read(url,{allowStale:true}); if(stale)return {data:stale.data,meta:{url,fromCache:true,stale:true,fetchedAt:stale.fetchedAt,error:String(last?.message||last)}}}
+    if(cache){const stale=await this.cache.read(url,{allowStale:true}); if(stale)return {data:unwrapJson(stale.data),meta:{url,fromCache:true,stale:true,fetchedAt:stale.fetchedAt,error:String(last?.message||last)}}}
     throw last;
   }
+}
+
+export function unwrapJson(value){
+  let current=value;
+  for(let i=0;i<2&&typeof current==='string';i++){
+    try{current=JSON.parse(current)}catch{return current}
+  }
+  return current;
 }
 
 function requestBuffer(targetUrl,{proxy,timeoutMs,headers}){

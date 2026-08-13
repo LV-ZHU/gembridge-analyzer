@@ -10,12 +10,39 @@ export function boardMarkdown(board,a,{reveal=true,seat=null}={}){
   L.push('','## 场上怎么选','|落点|次数|占比|','|---|---:|---:|');for(const r of a.destinations.slice(0,18))L.push(`|${r.key}|${r.count}|${pct(r.pct)}|`);
   L.push('','## 具体结果','|结果|次数|占比|','|---|---:|---:|');for(const r of a.exactResults.slice(0,18))L.push(`|${r.key}|${r.count}|${pct(r.pct)}|`);
   L.push('','## 这副主要看什么');if(a.notes.length)for(const n of a.notes)L.push(`- ${n}`);else L.push('- 场上结果比较集中，没有明显的结构性分歧。');
-  L.push('','## 数据','- 样本：'+`${a.resultCount} 个 room，约 ${a.tableCount} 场对阵。`,`- 成局：${a.gameCount}/${a.resultCount}（${pct(a.gameRate)}）；满贯 ${a.slamCount}；加倍/红加倍 ${a.doubleCount}。`,`- xIMP：均值 ${fmt(a.ximp.mean)}，中位数 ${fmt(a.ximp.median)}，范围 ${fmt(a.ximp.min)} ~ ${fmt(a.ximp.max)}。`,`- 复盘优先级：${a.studyValue.label}（${a.studyValue.score}/100，启发式筛牌指标）。`);
-  if(a.openingLeads.count){L.push('','## 首攻数据',`API 中 ${a.openingLeads.count}/${a.resultCount} 个 room 有首攻。`,'|首攻|次数|','|---|---:|');for(const x of a.openingLeads.distribution.slice(0,10))L.push(`|${x.key}|${x.count}|`)}
-  L.push('','## xIMP较极端的结果','|桌|室|定约|NS分|Datum差|xIMP|','|---:|---:|---|---:|---:|---:|');for(const r of a.outliers)L.push(`|${r.table}|${r.room}|${r.contract}|${signed(r.scoreNS)}|${signed(r.datumDifference)}|${signed(r.ximp)}|`);return L.join('\n')
+  L.push('','## 数据',`- 有效结果：${a.fieldResultCount} 个 room，其中 ${a.playedResultCount} 个实际定约、${a.noPlayCount} 个 NoPlay。`,`- 定约高度：${a.gameCount}/${a.playedResultCount} 到成局高度，其中 ${a.madeGameCount} 个完成；满贯 ${a.slamCount}；加倍/红加倍 ${a.doubleCount}。`,`- xIMP：均值 ${fmt(a.ximp.mean)}，中位数 ${fmt(a.ximp.median)}，范围 ${fmt(a.ximp.min)} ~ ${fmt(a.ximp.max)}。`,`- 复盘优先级：${a.studyValue.label}（${a.studyValue.score}/100，启发式筛牌指标）。`);
+  if(a.dataQuality){
+    const q=a.dataQuality;
+    L.push(`- 数据校验：${q.status==='ok'?'通过':q.status==='warning'?'有警告':'发现错误'}（${q.summary.checks} 项检查，${q.summary.errors} 个错误，${q.summary.warnings} 个警告）。`);
+    for(const issue of q.issues.slice(0,3))L.push(`  - ${issue.path}：${issue.message}`);
+  }
+  if(a.excludedResultCount)L.push(`- 另有 ${a.excludedResultCount} 条空白、phantom 或调整占位记录，仅保留诊断，不计入分布和技术比例。`);
+  if(a.openingLeads.count){L.push('','## 首攻数据',`API 中 ${a.openingLeads.count}/${a.playedResultCount} 个实际定约有首攻。`,'|首攻|次数|','|---|---:|');for(const x of a.openingLeads.distribution.slice(0,10))L.push(`|${x.key}|${x.count}|`)}
+  L.push('','## xIMP较极端的结果','|桌|室|定约|NS分|Datum差|xIMP|','|---:|---:|---|---:|---:|---:|');for(const r of a.outliers)L.push(`|${r.table}|${roomLabel(r)}|${r.contract}|${signed(r.scoreNS)}|${signed(r.datumDifference)}|${signed(r.ximp)}|`);return L.join('\n')
 }
-function questions(a,h){const q=[`在 ${h.dealer} 发牌、${h.vulnerability} 局况下，双方最可能争夺到什么高度？`];for(const f of a.fits.slice(0,2))q.push(`${f.side} 有 ${f.length} 张${name(f.strain)}配合，点力和牌型够不够继续向成局走？`);if(a.ddBySide.NS.NT>=9)q.push('DD里NS有3NT，但实战是否有足够信息叫到成局？');q.push('如果只看自己一手牌，你会优先描述牌型、邀局、逼局，还是先处理竞争？');return q.slice(0,5)}
+function questions(a,h){
+  const q=[];
+  const makeableSides=['NS','EW'].filter(side=>a.makeableGames?.[side]?.length);
+  if(makeableSides.length===1){
+    const side=makeableSides[0],other=side==='NS'?'EW':'NS',games=a.makeableGames[side].map(contractName).join('、');
+    const alternatives=a.destinations.filter(x=>x.key.startsWith(`${side} `)&&!a.makeableGames[side].some(game=>x.key.includes(game))).map(x=>contractName(x.key.replace(`${side} `,''))).slice(0,2);
+    q.push(alternatives.length?`${side} 双明手有 ${games}；${games} 和 ${alternatives.join('、')} 哪个定约更合理？`:`${side} 双明手有 ${games}，实战叫牌中怎样确认成局实力并选择定约？`);
+    const otherFit=a.fits.find(f=>f.side===other);
+    if(otherFit)q.push(`${other} 有 ${otherFit.length} 张${name(otherFit.strain)}配合；如果 ${side} 叫到成局，${other} 应该竞争到什么高度？`);
+  }else{
+    q.push(`在 ${h.dealer} 发牌、${h.vulnerability} 局况下，双方最可能争夺到什么高度？`);
+    for(const f of a.fits.slice(0,2))q.push(`${f.side} 有 ${f.length} 张${name(f.strain)}配合，点力和牌型支持邀请、成局，还是只适合竞争？`);
+  }
+  const sacrifice=a.sacrificeCandidates?.[0];
+  if(sacrifice)q.push(`${humanContract(sacrifice.contract)} 被加倍后，宕几墩仍比放打对方成局划算？`);
+  if(a.ddBySide.NS.NT>=9)q.push('DD里NS有3NT，但实战是否有足够信息叫到成局？');
+  q.push('如果只看自己一手牌，你会优先描述牌型、邀局、逼局，还是先处理竞争？');
+  return q.slice(0,5)
+}
 function name(s){return({S:'黑桃',H:'红心',D:'方块',C:'梅花'})[s]||s}
+function contractName(s){return String(s).replace(/(\d)(C|D|H|S|NT)/,(_,level,strain)=>`${level}${({C:'♣',D:'♦',H:'♥',S:'♠',NT:'NT'})[strain]}`)}
+function humanContract(s){return String(s).replace(/(\d)(C|D|H|S|NT)/,(_,level,strain)=>contractName(`${level}${strain}`))}
+function roomLabel(r){return r.sameResultInBothRooms?`${r.room}（两室相同）`:r.room}
 
 export function matchMarkdown(a){const L=[`# R${a.round} · ${a.table}桌`,'',`${a.teamA.name} vs ${a.teamB.name}`,'',`最终：**${a.final.teamAImp}–${a.final.teamBImp} IMP**，**${fmt(a.final.teamAVp)}–${fmt(a.final.teamBVp)} VP**。`,'','## 比分怎么形成的','|牌|A队得失IMP|开室/room1|闭室/room2|原因|累计|','|---:|---:|---|---|---|---|'];for(const b of a.boards)L.push(`|B${b.board}|${signed(b.teamAGain)}|${b.room1.contract} (${signed(b.room1.scoreNS)})|${b.room2.contract} (${signed(b.room2.scoreNS)})|${b.cause}|${b.cumulative.teamA}-${b.cumulative.teamB}|`);L.push('','## 大摆幅');for(const b of a.topSwings)L.push(`- B${b.board}：${signed(b.teamAGain)} IMP，${b.cause}。`);if(a.leadChanges)L.push(`- 按牌号累计，领先方变化 ${a.leadChanges} 次。`);if(!a.validation.netMatches)L.push(`- 程序按逐副结果累计为 ${a.validation.derivedTeamA}-${a.validation.derivedTeamB}，与官方 ${a.validation.officialTeamA}-${a.validation.officialTeamB} 不一致；优先以官方比分为准。`);return L.join('\n')}
 

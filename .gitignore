@@ -1,0 +1,10 @@
+node_modules/
+.cache/
+data/
+reports/
+work/
+*.docx
+~$*
+*.log
+.DS_Store
+.env

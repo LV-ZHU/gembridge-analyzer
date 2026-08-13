@@ -14,16 +14,22 @@ Do not mix the two by default. A board report may add a short match context only
 
 ## Use the CLI
 
-```bash
-node src/cli.mjs board "<URL>"
-node src/cli.mjs match "<URL>" --table 61
-node src/cli.mjs round "<URL>" --deep
-node src/cli.mjs team "<URL>" --team 24 --deep
-node src/cli.mjs player "<URL>" --player 082034
-node src/cli.mjs standings "<URL>"
-node src/cli.mjs butler "<URL>"
-node src/cli.mjs event "<URL>" --rounds 1-8 --deep
+Run `scripts\\setup.cmd` once, then use the short `gb` command. Let the CLI prompt for the URL so Windows does not reinterpret `&` characters from the link.
+
+```text
+gb board
+gb match --table 61
+gb round --deep
+gb team --team 24 --deep
+gb player --player 082034
+gb standings
+gb butler
+gb event --rounds 1-8 --deep
 ```
+
+Add `--word` to any report command to produce a `.docx` file. `fetch` always produces JSON.
+
+Use `gb fetch --scope board|round|event --strict` when creating durable machine-readable data. Add `--deep` to round/event snapshots only when per-board data is required.
 
 
 

@@ -1,18 +1,45 @@
 {
   "name": "gembridge-analyzer",
-  "version": "1.0.1",
-  "description": "GemBridge/CCBA bridge board study and tournament analysis toolkit.",
+  "version": "1.1.0",
+  "description": "CCBA/GemBridge bridge tournament data ingestion, validation and analysis toolkit.",
   "type": "module",
   "private": false,
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LV-ZHU/gembridge-analyzer.git"
+  },
+  "homepage": "https://github.com/LV-ZHU/gembridge-analyzer#readme",
+  "bugs": {
+    "url": "https://github.com/LV-ZHU/gembridge-analyzer/issues"
+  },
+  "keywords": [
+    "bridge",
+    "ccba",
+    "gembridge",
+    "contract-bridge",
+    "tournament-analysis"
+  ],
+  "files": [
+    "src/",
+    "scripts/",
+    "docs/",
+    "examples/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "engines": {
     "node": ">=18"
   },
   "bin": {
-    "gembridge": "./src/cli.mjs"
+    "gembridge": "./src/cli.mjs",
+    "gb": "./src/cli.mjs"
   },
   "scripts": {
     "test": "node --test",
+    "test:online": "node ./scripts/online-smoke.mjs",
+    "verify": "npm test && npm pack --dry-run",
     "test:watch": "node --test --watch",
     "doctor": "node ./src/cli.mjs doctor",
     "board": "node ./src/cli.mjs board",
@@ -22,6 +49,10 @@
     "player": "node ./src/cli.mjs player",
     "standings": "node ./src/cli.mjs standings",
     "butler": "node ./src/cli.mjs butler",
-    "event": "node ./src/cli.mjs event"
+    "event": "node ./src/cli.mjs event",
+    "setup": "npm link"
+  },
+  "dependencies": {
+    "docx": "^9.7.1"
   }
 }
