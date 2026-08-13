@@ -1,0 +1,27 @@
+{
+  "name": "gembridge-analyzer",
+  "version": "1.0.1",
+  "description": "GemBridge/CCBA bridge board study and tournament analysis toolkit.",
+  "type": "module",
+  "private": false,
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "gembridge": "./src/cli.mjs"
+  },
+  "scripts": {
+    "test": "node --test",
+    "test:watch": "node --test --watch",
+    "doctor": "node ./src/cli.mjs doctor",
+    "board": "node ./src/cli.mjs board",
+    "match": "node ./src/cli.mjs match",
+    "round": "node ./src/cli.mjs round",
+    "team": "node ./src/cli.mjs team",
+    "player": "node ./src/cli.mjs player",
+    "standings": "node ./src/cli.mjs standings",
+    "butler": "node ./src/cli.mjs butler",
+    "event": "node ./src/cli.mjs event"
+  }
+}

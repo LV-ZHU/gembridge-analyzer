@@ -1,0 +1,32 @@
+{
+  "title": "青团U16公开预赛 Butler",
+  "update": "2026-08-12 18:07:08",
+  "section": "71beacdc-f5ce-43b0-8c66-36a2a644f8ed",
+  "subTitle": "Butler = 平均XIMP, AOB = 平均对手Butler, 修正Butler = Butler + AOB",
+  "butlers": [
+    {
+      "no": "079460",
+      "aob": -0.064,
+      "flag": "OTHER",
+      "name": "陈恒睿",
+      "rank": 1,
+      "team": "浦东少年蓝队",
+      "ximps": 169,
+      "boards": 72,
+      "butler": 2.347,
+      "correctButler": 2.283
+    },
+    {
+      "no": "082034",
+      "aob": -0.664,
+      "flag": "OTHER",
+      "name": "马一廷",
+      "rank": 69,
+      "team": "四季教育红队",
+      "ximps": 43,
+      "boards": 96,
+      "butler": 0.448,
+      "correctButler": -0.216
+    }
+  ]
+}

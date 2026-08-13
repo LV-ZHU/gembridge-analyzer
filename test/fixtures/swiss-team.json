@@ -1,0 +1,28 @@
+{
+  "rounds": [
+    {
+      "round": 1,
+      "no": 44,
+      "vsNo": 43,
+      "imps": 87,
+      "vp": 20,
+      "bam": 0,
+      "vsImps": 3,
+      "vsVp": 0,
+      "vsBAM": 0,
+      "isWin": true,
+      "isBAMWin": false
+    }
+  ],
+  "teamNO": 44,
+  "teamName": "闵行霹雳",
+  "flag": "OTHER",
+  "rank": 1,
+  "vps": 20,
+  "penalty": 0,
+  "carryOver": 0,
+  "impQ": 29,
+  "winCount": 1,
+  "tieCount": 0,
+  "avgVsVp": 0
+}

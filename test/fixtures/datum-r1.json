@@ -1,0 +1,165 @@
+{
+  "round": 1,
+  "section": "71beacdc-f5ce-43b0-8c66-36a2a644f8ed",
+  "title": "青团U16公开预赛",
+  "boards": [
+    {
+      "ximp": 0,
+      "board": 1,
+      "datum": 20
+    },
+    {
+      "ximp": 0,
+      "board": 2,
+      "datum": 180
+    }
+  ],
+  "ximps": [
+    {
+      "no": "082034",
+      "flag": "",
+      "room": 1,
+      "team": "四季教育红队",
+      "table": 61,
+      "ximps": 55,
+      "player": "马一廷",
+      "teamNO": 1,
+      "position": "N",
+      "boardsXimp": [
+        {
+          "ximp": 2,
+          "board": 1,
+          "datum": 0
+        },
+        {
+          "ximp": -1,
+          "board": 2,
+          "datum": 0
+        },
+        {
+          "ximp": 10,
+          "board": 3,
+          "datum": 0
+        },
+        {
+          "ximp": 12,
+          "board": 4,
+          "datum": 0
+        },
+        {
+          "ximp": 5,
+          "board": 5,
+          "datum": 0
+        },
+        {
+          "ximp": 8,
+          "board": 6,
+          "datum": 0
+        },
+        {
+          "ximp": 2,
+          "board": 7,
+          "datum": 0
+        },
+        {
+          "ximp": 2,
+          "board": 8,
+          "datum": 0
+        },
+        {
+          "ximp": 13,
+          "board": 9,
+          "datum": 0
+        },
+        {
+          "ximp": -5,
+          "board": 10,
+          "datum": 0
+        },
+        {
+          "ximp": 8,
+          "board": 11,
+          "datum": 0
+        },
+        {
+          "ximp": -1,
+          "board": 12,
+          "datum": 0
+        }
+      ]
+    },
+    {
+      "no": "062445",
+      "flag": "",
+      "room": 1,
+      "team": "四季教育红队",
+      "table": 61,
+      "ximps": 55,
+      "player": "范浥尘",
+      "teamNO": 1,
+      "position": "S",
+      "boardsXimp": [
+        {
+          "ximp": 2,
+          "board": 1,
+          "datum": 0
+        },
+        {
+          "ximp": -1,
+          "board": 2,
+          "datum": 0
+        },
+        {
+          "ximp": 10,
+          "board": 3,
+          "datum": 0
+        },
+        {
+          "ximp": 12,
+          "board": 4,
+          "datum": 0
+        },
+        {
+          "ximp": 5,
+          "board": 5,
+          "datum": 0
+        },
+        {
+          "ximp": 8,
+          "board": 6,
+          "datum": 0
+        },
+        {
+          "ximp": 2,
+          "board": 7,
+          "datum": 0
+        },
+        {
+          "ximp": 2,
+          "board": 8,
+          "datum": 0
+        },
+        {
+          "ximp": 13,
+          "board": 9,
+          "datum": 0
+        },
+        {
+          "ximp": -5,
+          "board": 10,
+          "datum": 0
+        },
+        {
+          "ximp": 8,
+          "board": 11,
+          "datum": 0
+        },
+        {
+          "ximp": -1,
+          "board": 12,
+          "datum": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+export function parseArgs(argv){const pos=[],opts={};for(let i=0;i<argv.length;i++){const a=argv[i];if(!a.startsWith('--')){pos.push(a);continue}const k=a.slice(2);if(['json','no-reveal','deep','refresh','no-cache','quiet','help'].includes(k)){opts[k]=true;continue}const v=argv[++i];if(v==null)throw new Error(`--${k} 缺少值`);opts[k]=v}return{pos,opts}}
