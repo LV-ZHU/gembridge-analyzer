@@ -1,6 +1,6 @@
 {
   "name": "gembridge-analyzer",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "CCBA/GemBridge bridge tournament data ingestion, validation and analysis toolkit.",
   "type": "module",
   "private": false,

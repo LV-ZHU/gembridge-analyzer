@@ -1,5 +1,5 @@
 import { groupCount, sortedCountRows, stats, entropyFromCounts, clamp, pct } from "../core/utils.mjs";
-import { sideFits } from "../bridge/hands.mjs";
+import { cardCount, sideFits } from "../bridge/hands.mjs";
 import { isGame, isSlam } from "../bridge/scoring.mjs";
 
 const SIDE = { N: "NS", S: "NS", E: "EW", W: "EW" };
@@ -23,8 +23,9 @@ export function analyzeBoard(board, { manual = null } = {}) {
   const fits = sideFits(h.hands);
   const dd = ddBySide(h);
   const makeableGames = makeableGamesBySide(dd);
+  const slamOpportunities = slamOpportunitiesBySide(playedRows, dd, h.par);
   const sacrificeCandidates = findSacrificeCandidates(playedRows, dd, h.par);
-  const notes = practicalNotes(playedRows, dd, destinations, h, sacrificeCandidates);
+  const notes = practicalNotes(playedRows, dd, destinations, h, slamOpportunities, sacrificeCandidates);
   const doubles = playedRows.filter(r => r.contract.double).length;
   const games = playedRows.filter(r => isGame(r.contract.level, r.contract.strain)).length;
   const madeGames = playedRows.filter(r => isGame(r.contract.level, r.contract.strain)
@@ -61,6 +62,7 @@ export function analyzeBoard(board, { manual = null } = {}) {
     par: h.par,
     ddBySide: dd,
     makeableGames,
+    slamOpportunities,
     allResultCount: allRows.length,
     resultCount: fieldRows.length,
     fieldResultCount: fieldRows.length,
@@ -96,6 +98,7 @@ export function analyzeBoard(board, { manual = null } = {}) {
         "fits",
         "field distributions",
         "played-contract rates",
+        "DD slam opportunities and field gap",
         "studyValue",
         "notes",
       ],
@@ -163,6 +166,41 @@ function makeableGamesBySide(dd) {
   return out;
 }
 
+function slamOpportunitiesBySide(rows, dd, par) {
+  const parsedPar = (par?.contracts || []).map(parseParContract).filter(Boolean);
+  const out = [];
+  for (const side of ["NS", "EW"]) {
+    const ddSlams = ["C", "D", "H", "S", "NT"]
+      .map(strain => {
+        const tricks = dd[side][strain];
+        if (!Number.isFinite(tricks) || tricks < 12) return null;
+        const level = Math.min(7, tricks - 6);
+        return { strain, tricks, level, contract: `${level}${strain}` };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.level - a.level || strainOrder(a.strain) - strainOrder(b.strain));
+    if (!ddSlams.length) continue;
+
+    const sideRows = rows.filter(r => SIDE[r.contract.declarer] === side);
+    const slamRows = sideRows.filter(r => isSlam(r.contract.level));
+    const fieldDestinations = sortedCountRows(
+      groupCount(sideRows, r => `${r.contract.level}${r.contract.strain}${r.contract.double || ""}`),
+      sideRows.length,
+    );
+    out.push({
+      side,
+      ddSlams,
+      parSlams: parsedPar.filter(x => x.side === side && x.level >= 6),
+      fieldContractCount: sideRows.length,
+      fieldSlamCount: slamRows.length,
+      fieldSlamRate: sideRows.length ? slamRows.length / sideRows.length : 0,
+      fieldDestinations,
+      parScoreForSide: Number.isFinite(par?.scoreNS) ? sideScore(par.scoreNS, side) : null,
+    });
+  }
+  return out;
+}
+
 function findSacrificeCandidates(rows, dd, par) {
   const candidates = [];
   for (const r of rows) {
@@ -188,6 +226,8 @@ function findSacrificeCandidates(rows, dd, par) {
       table: r.table,
       room: r.room,
       contract: r.contract.display,
+      doubled: Boolean(c.double),
+      double: c.double || "",
       scoreForSide: sideScore(r.scoreNS, side),
       parMatch: Number.isFinite(par?.scoreNS) && par.scoreNS === r.scoreNS,
       opponentMadeGameCount: opponentMadeGames.length,
@@ -199,8 +239,40 @@ function findSacrificeCandidates(rows, dd, par) {
   return candidates;
 }
 
-function practicalNotes(rows, dd, destinations, hand, sacrificeCandidates) {
+function practicalNotes(rows, dd, destinations, hand, slamOpportunities, sacrificeCandidates) {
   const out = [];
+
+  for (const opportunity of slamOpportunities) {
+    const ddText = opportunity.ddSlams.map(x => humanContract(x.contract)).join("、");
+    const parText = opportunity.parSlams.map(x => humanContract(x.display)).join(" / ");
+    const hcp = sideHcp(hand, opportunity.side);
+    if (parText) {
+      const parScore = Number.isFinite(hand.par?.scoreNS) ? signedScore(hand.par.scoreNS) : "未知";
+      out.push(`Par 指向 ${parText}（NS视角 ${parScore}）；DD 显示 ${opportunity.side} 可做成 ${ddText}。技术上限已经到满贯，不能只停留在场上成局定约之间的比较。`);
+    } else {
+      out.push(`DD 显示 ${opportunity.side} 可做成 ${ddText}，技术上限已经到满贯。`);
+    }
+    if (opportunity.ddSlams.some(x => x.level === 7) && hcp < 30) {
+      const assets = sideShapeAssets(hand, opportunity.side);
+      out.push(`${opportunity.side} 合计 ${hcp} HCP 仍有双明手大满贯，说明这副不能只按点力判断${assets ? `；具体牌型资源包括 ${assets}` : "，还要结合牌型、配合与控制"}。`);
+    }
+    if (opportunity.fieldContractCount) {
+      const fieldText = opportunity.fieldDestinations
+        .slice(0, 4)
+        .map(x => `${humanContract(x.key)} ${x.count} 个`)
+        .join("、");
+      if (opportunity.fieldSlamCount === 0) {
+        out.push(`${opportunity.side} 的 ${opportunity.fieldContractCount} 个实际定约没有一个到满贯（${fieldText}）。DD/Par 是看见四手牌后的技术上限，不等于实战必须叫到；这里真正值得复盘的是如何确认将牌配合、短门和控制，并区分小满贯与大满贯。`);
+      } else {
+        out.push(`${opportunity.side} 的 ${opportunity.fieldContractCount} 个实际定约中有 ${opportunity.fieldSlamCount} 个到满贯（${fieldText}），可以比较到达满贯与停在成局的叫牌信息是否充分。`);
+      }
+    }
+    const ntChoice = opportunity.fieldDestinations.find(x => /NT$/.test(x.key));
+    if (ntChoice && (dd[opportunity.side].NT ?? -1) < 12) {
+      out.push(`DD 中 ${opportunity.side} 无将最多 ${dd[opportunity.side].NT} 墩，套约却可做成 ${ddText}；场上仍有 ${ntChoice.count} 个 ${humanContract(ntChoice.key)}。这个主流成局落点拿分直接，但也容易掩盖套约的满贯空间。`);
+    }
+  }
+
   for (const side of ["NS", "EW"]) {
     const possible = Object.entries(GAME)
       .filter(([strain, tricks]) => (dd[side][strain] ?? -1) >= tricks)
@@ -221,7 +293,9 @@ function practicalNotes(rows, dd, destinations, hand, sacrificeCandidates) {
   });
   if (mainstream && rows.length && mainstream.count / rows.length >= .4) {
     const [, side, level, strain] = /^(NS|EW) (\d)(C|D|H|S|NT)/.exec(mainstream.key);
-    out.push(`${side} 双明手可做成 ${contractName(level, strain)}；${rows.length} 个实际定约中有 ${mainstream.count} 个落在这个定约，这是场上的主流选择。`);
+    if (!slamOpportunities.some(x => x.side === side)) {
+      out.push(`${side} 双明手可做成 ${contractName(level, strain)}；${rows.length} 个实际定约中有 ${mainstream.count} 个落在这个定约，这是场上的主流选择。`);
+    }
   }
 
   const destinationGroups = groupRows(rows, r => `${SIDE[r.contract.declarer]}|${r.contract.level}|${r.contract.strain}`);
@@ -239,15 +313,22 @@ function practicalNotes(rows, dd, destinations, hand, sacrificeCandidates) {
   const sacrifice = sacrificeCandidates[0];
   if (sacrifice) {
     const sideRows = rows.filter(r => SIDE[r.contract.declarer] === sacrifice.side);
-    const lead = sideRows.length === 1 ? `${sacrifice.side} 唯一的实际定约` : `${sacrifice.side} 的 ${sacrifice.contract}`;
-    let note = `${lead}是 ${humanContract(sacrifice.contract)}，该方得分 ${signedScore(sacrifice.scoreForSide)}`;
+    const contract = humanContract(sacrifice.contract);
+    let note = sideRows.length === 1
+      ? `${contract} 是 ${sacrifice.side} 唯一的实际定约，该方得分 ${signedScore(sacrifice.scoreForSide)}`
+      : `${sacrifice.side} 的 ${contract} 得分 ${signedScore(sacrifice.scoreForSide)}`;
     if (sacrifice.parMatch) note += "，并且与本副 Par 得分一致";
     const range = sacrifice.opponentMadeGameScoreRange;
     if (range) {
-      note += `；相较 ${sacrifice.opponent} 完成成局时该方的 ${formatRange(range)}，这个结果更像有利的牺牲，而不是尝试完成本方成局`;
+      if (sacrifice.doubled) {
+        note += `；相较 ${sacrifice.opponent} 完成成局时该方的 ${formatRange(range)}，加倍后的代价仍更低，结果上是有利的牺牲`;
+      } else {
+        note += `；相较 ${sacrifice.opponent} 完成成局时该方的 ${formatRange(range)}，结果上像有利的竞争或牺牲，但这个定约未被加倍`;
+      }
     } else {
       note += "；对方双明手有成局，而本方这个定约双明手不可成，因此更像牺牲叫";
     }
+    if (!sacrifice.doubled) note += "。没有叫牌记录时，不能据此确认叫牌原意，也不能忽略对方没有处罚到位的可能";
     out.push(`${note}。`);
   }
 
@@ -283,6 +364,48 @@ function gameContract(strain) {
   if (strain === "NT") return "3NT";
   if (strain === "H" || strain === "S") return `4${strain}`;
   return `5${strain}`;
+}
+
+function parseParContract(display) {
+  const text = String(display || "").trim();
+  const match = /^(\d)(NT|C|D|H|S)(X{1,2})?\s+(NS|EW)(?:\s+(=|[+-]\d+))?/i.exec(text);
+  if (!match) return null;
+  const [, level, strain, double = "", side, result = ""] = match;
+  return {
+    display: text,
+    level: Number(level),
+    strain: strain.toUpperCase(),
+    double: double.toUpperCase(),
+    side: side.toUpperCase(),
+    result,
+  };
+}
+
+function strainOrder(strain) {
+  return ["C", "D", "H", "S", "NT"].indexOf(strain);
+}
+
+function sideHcp(hand, side) {
+  const directions = side === "NS" ? ["N", "S"] : ["E", "W"];
+  return directions.reduce((sum, direction) => sum + (hand.hands[direction]?.hcp || 0), 0);
+}
+
+function sideShapeAssets(hand, side) {
+  const fits = sideFits(hand.hands).filter(x => x.side === side);
+  const fitText = fits.length
+    ? `${fits.map(x => `${x.length}张${strainName(x.strain)}`).join('和')}${fits.length > 1 ? '双配合' : '配合'}`
+    : "";
+  const directions = side === "NS" ? ["N", "S"] : ["E", "W"];
+  const voidText = directions
+    .flatMap(direction => ["S", "H", "D", "C"]
+      .filter(strain => cardCount(hand.hands[direction]?.[strain]) === 0)
+      .map(strain => `${direction} 的${strainName(strain)}缺门`))
+    .join("、");
+  return [fitText, voidText].filter(Boolean).join("，");
+}
+
+function strainName(strain) {
+  return ({ C: "梅花", D: "方块", H: "红心", S: "黑桃", NT: "无将" })[strain] || strain;
 }
 
 function contractName(level, strain) {

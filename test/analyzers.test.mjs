@@ -26,3 +26,56 @@ test('2025 R1 B1 excludes empty placeholders and treats 4SX as a sacrifice',()=>
   assert.match(markdown,/121\|1\/2（两室相同）\|E 4H \+2/);
   assert.doesNotMatch(markdown,/NO CONTRACT \/ ADJUSTED/);
 });
+
+test('2025 R1 B11 surfaces the 7C par gap and does not invent a double',()=>{
+  const hand={
+    round:1,board:11,dealer:'S',vulnerability:'None',
+    hands:{
+      N:{hcp:7,S:'AQJT94',H:'T62',D:'7',C:'T73'},
+      E:{hcp:12,S:'K63',H:'43',D:'QJT3',C:'AQ96'},
+      S:{hcp:7,S:'8752',H:'KJ7',D:'K864',C:'54'},
+      W:{hcp:14,S:'-',H:'AQ985',D:'A952',C:'KJ82'},
+    },
+    doubleDummyTricks:{
+      N:{C:0,D:0,H:1,S:6,NT:2},E:{C:13,D:12,H:12,S:7,NT:11},
+      S:{C:0,D:0,H:1,S:6,NT:2},W:{C:13,D:12,H:12,S:7,NT:11},
+    },
+    par:{contracts:['7C EW ='],scoreNS:-1440},
+  };
+  const results=[
+    played(121,1,'N',3,'S','X','-3',6,-500,-60,-2),
+    played(121,2,'E',3,'NT','','+2',11,-460,-20,-1),
+    played(122,1,'E',3,'NT','','+2',11,-460,-20,-1),
+    played(122,2,'W',4,'H','','+2',12,-480,-40,-1),
+    played(123,1,'W',5,'C','','=',11,-400,40,1),
+    played(123,2,'E',3,'NT','','+1',10,-430,10,0),
+    played(124,1,'E',3,'NT','','+2',11,-460,-20,-1),
+    played(124,2,'E',3,'NT','','+1',10,-430,10,0),
+    played(125,1,'W',5,'C','','+1',12,-420,20,1),
+    played(125,2,'N',4,'S','','-3',7,-150,290,7),
+  ];
+  const board={hand,results},analysis=analyzeBoard(board),markdown=boardMarkdown(board,analysis);
+  const slam=analysis.slamOpportunities.find(x=>x.side==='EW');
+  assert.deepEqual(slam.ddSlams.map(x=>x.contract),['7C','6D','6H']);
+  assert.deepEqual(slam.parSlams.map(x=>x.display),['7C EW =']);
+  assert.equal(slam.fieldContractCount,8);
+  assert.equal(slam.fieldSlamCount,0);
+  assert.equal(analysis.sacrificeCandidates[0].contract,'N 4S -3');
+  assert.equal(analysis.sacrificeCandidates[0].doubled,false);
+  assert.match(analysis.notes.join('\n'),/Par 指向 7♣ EW =/);
+  assert.match(analysis.notes.join('\n'),/8 个实际定约没有一个到满贯/);
+  assert.match(analysis.notes.join('\n'),/8张方块和8张梅花双配合，W 的黑桃缺门/);
+  assert.match(analysis.notes.join('\n'),/无将最多 11 墩，套约却可做成 7♣、6♦、6♥/);
+  assert.match(markdown,/## 满贯机会/);
+  assert.match(markdown,/\|EW\|7♣、6♦、6♥\|7♣ EW =\|0\/8\|/);
+  assert.match(markdown,/N 4♠ -3 未被加倍/);
+  assert.doesNotMatch(markdown,/N 4♠ -3 被加倍/);
+  assert.doesNotMatch(markdown,/N 4S -3是 N 4♠ -3/);
+});
+
+function played(table,room,declarer,level,strain,double,result,actualTricks,scoreNS,datumDifference,ximp){
+  return {
+    table,room,recordKind:'played-contract',flags:{},scoreNS,datumDifference,ximp,
+    contract:{declarer,level,strain,double,result,actualTricks,display:`${declarer} ${level}${strain}${double} ${result}`},
+  };
+}

@@ -7,6 +7,7 @@ export function boardMarkdown(board,a,{reveal=true,seat=null}={}){
   if(a.manual){L.push('','## 人工补录');if(a.manual.system)L.push(`- 体系：${a.manual.system}`);if(a.manual.auction?.length)L.push(`- 叫牌：${a.manual.auction.join(' – ')}`);if(a.manual.openingLead)L.push(`- 首攻：${a.manual.openingLead}`);for(const x of a.manual.play||[])L.push(`- ${x}`);if(a.manual.notes)L.push(`- ${a.manual.notes}`)}
   L.push('','## Double Dummy','|庄家|♣|♦|♥|♠|NT|','|---|---:|---:|---:|---:|---:|');for(const d of ['N','E','S','W']){const x=h.doubleDummyTricks[d];L.push(`|${d}|${x.C}|${x.D}|${x.H}|${x.S}|${x.NT}|`)}
   if(!reveal){L.push('','全场结果暂时隐藏。先做自己的叫牌或定约判断，再去掉 `--no-reveal`。');return L.join('\n')}
+  if(a.slamOpportunities?.length){L.push('','## 满贯机会','|方向|DD可成的满贯|Par满贯|实战到满贯|','|---|---|---|---:|');for(const x of a.slamOpportunities){const dd=x.ddSlams.map(y=>contractName(y.contract)).join('、');const par=x.parSlams.length?x.parSlams.map(y=>humanContract(y.display)).join(' / '):'—';L.push(`|${x.side}|${dd}|${par}|${x.fieldSlamCount}/${x.fieldContractCount}|`)}}
   L.push('','## 场上怎么选','|落点|次数|占比|','|---|---:|---:|');for(const r of a.destinations.slice(0,18))L.push(`|${r.key}|${r.count}|${pct(r.pct)}|`);
   L.push('','## 具体结果','|结果|次数|占比|','|---|---:|---:|');for(const r of a.exactResults.slice(0,18))L.push(`|${r.key}|${r.count}|${pct(r.pct)}|`);
   L.push('','## 这副主要看什么');if(a.notes.length)for(const n of a.notes)L.push(`- ${n}`);else L.push('- 场上结果比较集中，没有明显的结构性分歧。');
@@ -22,8 +23,17 @@ export function boardMarkdown(board,a,{reveal=true,seat=null}={}){
 }
 function questions(a,h){
   const q=[];
+  const slam=a.slamOpportunities?.find(x=>x.parSlams.length)||a.slamOpportunities?.[0];
   const makeableSides=['NS','EW'].filter(side=>a.makeableGames?.[side]?.length);
-  if(makeableSides.length===1){
+  if(slam){
+    const par=slam.parSlams[0];
+    const ceiling=slam.ddSlams.map(x=>contractName(x.contract)).join('、');
+    q.push(`${slam.side} 合计 ${a.hcp[slam.side]} HCP，${par?`Par 却是 ${humanContract(par.display)}`:`DD 却显示可做成 ${ceiling}`}；哪些牌型、配合和控制价值不能由点力直接看出？`);
+    const fieldGap=slam.fieldContractCount?`实战只有 ${slam.fieldSlamCount}/${slam.fieldContractCount} 到满贯`:'实战没有该方做庄样本';
+    q.push(`DD 显示 ${slam.side} 有 ${ceiling}，而${fieldGap}；叫牌中怎样确认将牌配合并区分小满贯与大满贯？`);
+    const other=slam.side==='NS'?'EW':'NS',otherFit=a.fits.find(f=>f.side===other);
+    if(otherFit)q.push(`${other} 有 ${otherFit.length} 张${name(otherFit.strain)}配合；如果 ${slam.side} 继续探索满贯，${other} 的竞争会怎样影响判断？`);
+  }else if(makeableSides.length===1){
     const side=makeableSides[0],other=side==='NS'?'EW':'NS',games=a.makeableGames[side].map(contractName).join('、');
     const alternatives=a.destinations.filter(x=>x.key.startsWith(`${side} `)&&!a.makeableGames[side].some(game=>x.key.includes(game))).map(x=>contractName(x.key.replace(`${side} `,''))).slice(0,2);
     q.push(alternatives.length?`${side} 双明手有 ${games}；${games} 和 ${alternatives.join('、')} 哪个定约更合理？`:`${side} 双明手有 ${games}，实战叫牌中怎样确认成局实力并选择定约？`);
@@ -34,7 +44,10 @@ function questions(a,h){
     for(const f of a.fits.slice(0,2))q.push(`${f.side} 有 ${f.length} 张${name(f.strain)}配合，点力和牌型支持邀请、成局，还是只适合竞争？`);
   }
   const sacrifice=a.sacrificeCandidates?.[0];
-  if(sacrifice)q.push(`${humanContract(sacrifice.contract)} 被加倍后，宕几墩仍比放打对方成局划算？`);
+  if(sacrifice){
+    if(sacrifice.doubled)q.push(`${humanContract(sacrifice.contract)} 被加倍后，宕几墩仍比放打对方成局划算？`);
+    else q.push(`${humanContract(sacrifice.contract)} 未被加倍，${sacrifice.side} 只付出 ${Math.abs(sacrifice.scoreForSide)} 分；这是可重复的牺牲判断，还是对方没有处罚到位？`);
+  }
   if(a.ddBySide.NS.NT>=9)q.push('DD里NS有3NT，但实战是否有足够信息叫到成局？');
   q.push('如果只看自己一手牌，你会优先描述牌型、邀局、逼局，还是先处理竞争？');
   return q.slice(0,5)

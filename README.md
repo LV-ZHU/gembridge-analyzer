@@ -86,7 +86,7 @@ http://www.gembridge.cn/score/TeamRoundResultAndRank?tourStart=2026-08-11&tour=3
 gb board
 ```
 
-输出四手牌、HCP、配合、DD、Par、全场落点、具体结果、Datum / xIMP、极端结果和复盘提示。
+输出四手牌、HCP、配合、DD、Par、满贯机会、全场落点、具体结果、Datum / xIMP、极端结果和复盘提示。满贯机会会把 DD 最高可成定约、Par 与实战到达率分开显示；DD/Par 只作为看见四手牌后的技术上限，不会直接断言实战叫牌必然错误。
 
 常用组合：
 

@@ -1,7 +1,7 @@
 import { nowIso } from "./utils.mjs";
 
 export const SNAPSHOT_SCHEMA_VERSION = "1.1.0";
-export const APP_VERSION = "1.1.0";
+export const APP_VERSION = "1.1.1";
 
 export function createSnapshot({ scope, meta, data, dataQuality }) {
   return {
