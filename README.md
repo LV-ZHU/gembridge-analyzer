@@ -80,6 +80,8 @@ http://www.gembridge.cn/score/TeamRoundResultAndRank?tourStart=2026-08-11&tour=3
 
 ## 现在可用的指令
 
+参数、URL 类型和常见错误的详细说明见：[docs/parameter-guide.md](docs/parameter-guide.md)。如果不知道该选哪条 URL，先看文档中的“URL 怎么选”表格。
+
 ### `board`：分析单副牌
 
 ```cmd
