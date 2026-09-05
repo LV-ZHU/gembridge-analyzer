@@ -262,3 +262,5 @@ npm run verify
 `--word` 适用于 `board`、`match`、`round`、`team`、`player`、`standings`、`butler` 和 `event`。`fetch` 固定输出 JSON。
 
 `--boards` 既可以写本轮实际牌号，也可以写本轮内的顺序。例如某轮实际使用 B17–B32，`--boards 1-2` 会自动选择 B17–B18；写 `--boards 17-18` 得到相同结果。
+
+使用https://www.orcarouter.ai/ref/ref_f0a1c6a729fab096b092提供的免费API
